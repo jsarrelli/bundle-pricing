@@ -18,7 +18,7 @@ case class BundlePricingCalculator(catalog: Seq[CatalogItem], bundlePromotions: 
         case Some(promotion) => iterate(partialPurchase.applyPromotion(promotion))
       }
 
-    val bestPurchase = iterate(PartialPurchase(List.empty, PurchaseItems.apply(cartItemsAsMap)))
+    val bestPurchase = iterate(PartialPurchase(PurchaseItems.apply(cartItemsAsMap)))
 
     bestPurchase.totalPrice
   }
