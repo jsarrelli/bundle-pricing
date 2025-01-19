@@ -10,17 +10,30 @@ protected[calculator] case class PartialPurchase(
   def applyPromotion(promotion: BundlePromotion): PartialPurchase =
     copy(
       appliedPromotions = appliedPromotions :+ promotion,
-      purchaseItems = PurchaseItems(takeItemsFromCart(promotion)),
+      purchaseItems = PurchaseItems(extractItemsForPromotion(promotion)),
     )
 
-  protected[calculator] def takeItemsFromCart(bundlePromotion: BundlePromotion): Map[CatalogItem, Quantity] =
-    bundlePromotion.cartItems.foldLeft(purchaseItems.items)((accum, bundleCartItem) =>
-      accum.get(bundleCartItem.catalogItem) match {
+  /**
+   * Applies the given bundle promotion by subtracting the required items and quantities from the cart.
+   *
+   * @param bundlePromotion
+   *   The bundle promotion to be applied.
+   * @return
+   *   A new cart with the items subtracted based on the promotion's requirements.
+   * @throws ProductNotFound
+   *   If any required product for the promotion is missing from the cart.
+   * @throws InsufficientQuantityException
+   *   If the cart does not contain sufficient quantity for a required product.
+   */
+  protected[calculator] def extractItemsForPromotion(bundlePromotion: BundlePromotion): Map[CatalogItem, Quantity] =
+    bundlePromotion.cartItems.foldLeft(purchaseItems.items)((partialCart, bundleCartItem) =>
+      partialCart.get(bundleCartItem.catalogItem) match {
         case Some(quantity) if quantity.value < bundleCartItem.quantity.value  =>
           throw InsufficientQuantityException(bundleCartItem.catalogItem, bundleCartItem.quantity, quantity)
-        case Some(quantity) if quantity.value == bundleCartItem.quantity.value => accum - bundleCartItem.catalogItem
+        case Some(quantity) if quantity.value == bundleCartItem.quantity.value =>
+          partialCart - bundleCartItem.catalogItem
         case Some(quantity)                                                    =>
-          accum + (bundleCartItem.catalogItem -> Quantity(quantity.value - bundleCartItem.quantity.value))
+          partialCart + (bundleCartItem.catalogItem -> Quantity(quantity.value - bundleCartItem.quantity.value))
         case None                                                              => throw ProductNotFound(bundleCartItem.catalogItem)
       }
     )

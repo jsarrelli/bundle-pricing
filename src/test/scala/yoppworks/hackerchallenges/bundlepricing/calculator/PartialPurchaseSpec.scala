@@ -35,13 +35,14 @@ class PartialPurchaseSpec extends AnyWordSpec with Matchers {
     ) // 550
 
   val bunldes = List(promotion1, promotion2)
-  "takeItemsFromCart" should {
-    "take one item from cart returning the cart with subtracted items" in {
+
+  "extractItemsForPromotion" should {
+    "subtract the required items for a single promotion from the cart and return the updated cart" in {
       val purchaseItems   = PurchaseItems(
         Map(breadCatalogItem -> Quantity(1), appleCatalogItem -> Quantity(5), margarineCatalogItem -> Quantity(2))
       )
       val partialPurchase = PartialPurchase(purchaseItems)
-      val result          = partialPurchase.takeItemsFromCart(promotion1)
+      val result          = partialPurchase.extractItemsForPromotion(promotion1)
       result shouldBe Map(
         breadCatalogItem     -> Quantity(1),
         appleCatalogItem     -> Quantity(3),
@@ -49,26 +50,28 @@ class PartialPurchaseSpec extends AnyWordSpec with Matchers {
       )
     }
 
-    "take multiple items from cart returning the cart with subtracted items" in {
+    "subtract multiple items for a promotion from the cart and return the updated cart" in {
       val purchaseItems   = PurchaseItems(
         Map(breadCatalogItem -> Quantity(1), appleCatalogItem -> Quantity(5), margarineCatalogItem -> Quantity(2))
       )
       val partialPurchase = PartialPurchase(purchaseItems)
-      val result          = partialPurchase.takeItemsFromCart(promotion2)
+      val result          = partialPurchase.extractItemsForPromotion(promotion2)
       result shouldBe Map(appleCatalogItem -> Quantity(4))
     }
-    "failed if bundled product is not present on items" in {
+
+    "throw ProductNotFound when a required product for the promotion is missing from the cart" in {
       val purchaseItems   = PurchaseItems(Map(breadCatalogItem -> Quantity(1), appleCatalogItem -> Quantity(5)))
       val partialPurchase = PartialPurchase(purchaseItems)
-      val ex              = intercept[ProductNotFound](partialPurchase.takeItemsFromCart(promotion2))
+      val ex              = intercept[ProductNotFound](partialPurchase.extractItemsForPromotion(promotion2))
       ex shouldBe ProductNotFound(margarineCatalogItem)
     }
-    "failed if quantity is not enough" in {
+
+    "throw InsufficientQuantityException when the cart does not have enough quantity of a required product" in {
       val purchaseItems   = PurchaseItems(
         Map(breadCatalogItem -> Quantity(1), appleCatalogItem -> Quantity(5), margarineCatalogItem -> Quantity(1))
       )
       val partialPurchase = PartialPurchase(purchaseItems)
-      val ex              = intercept[InsufficientQuantityException](partialPurchase.takeItemsFromCart(promotion2))
+      val ex              = intercept[InsufficientQuantityException](partialPurchase.extractItemsForPromotion(promotion2))
       ex shouldBe InsufficientQuantityException(
         item = margarineCatalogItem,
         required = Quantity(2),
@@ -78,7 +81,7 @@ class PartialPurchaseSpec extends AnyWordSpec with Matchers {
   }
 
   "totalPrice" should {
-    "calculate total price of purchase items if no promotions applied" in {
+    "calculate the total price of all items in the cart when no promotions are applied" in {
       val purchaseItems   = PurchaseItems(
         Map(breadCatalogItem -> Quantity(1), appleCatalogItem -> Quantity(5), margarineCatalogItem -> Quantity(2))
       )
@@ -88,14 +91,16 @@ class PartialPurchaseSpec extends AnyWordSpec with Matchers {
         + margarineCatalogItem.unitPrice.value * 2)
       result.value shouldBe expected
     }
-    "calculate total price of bundle promotions if there is no isolated items left" in {
+
+    "calculate the total price of applied promotions when there are no remaining isolated items" in {
       val purchaseItems   = PurchaseItems(Map.empty)
       val partialPurchase = PartialPurchase(purchaseItems, List(promotion1, promotion2))
       val result          = partialPurchase.totalPrice
       val expected        = (promotion1.totalDiscountedPrice.value + promotion2.totalDiscountedPrice.value)
       result.value shouldBe expected
     }
-    "calculate total price for items and applied promotions" in {
+
+    "calculate the total price by combining item prices and applied promotions" in {
       val purchaseItems   = PurchaseItems(
         Map(breadCatalogItem -> Quantity(1), appleCatalogItem -> Quantity(5), margarineCatalogItem -> Quantity(2))
       )
@@ -109,7 +114,7 @@ class PartialPurchaseSpec extends AnyWordSpec with Matchers {
   }
 
   "applyPromotion" should {
-    "apply promotion taking items from the cart" in {
+    "apply a promotion, deduct the required items from the cart, and return the updated cart with the applied promotion" in {
       val purchaseItems   = PurchaseItems(
         Map(breadCatalogItem -> Quantity(1), appleCatalogItem -> Quantity(5), margarineCatalogItem -> Quantity(2))
       )

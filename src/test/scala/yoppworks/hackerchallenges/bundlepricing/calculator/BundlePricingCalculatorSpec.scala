@@ -54,108 +54,90 @@ class BundlePricingCalculatorSpec extends AnyWordSpec with Matchers {
   val currentBundles          = Seq(promotion1, promotion2, promotion3, promotion4)
   val bundlePricingCalculator = BundlePricingCalculator(catalogExample, currentBundles)
 
-  "BundlePricingCalculatorSpec" should {
-    "calculateBestPurchase" should {
+  "calculateBestPurchase" should {
 
-      "go for the best bundled, if more than one apply. Go for the 4 apple discount instead of " +
-        "applying the 2 apple discount twice" in {
-          val cart   = Cart(
-            Seq(
-              CartItem(appleCatalogItem, Quantity(4))
-            )
-          )
-          val result = bundlePricingCalculator.calculateBestPurchase(cart)
-          result shouldBe Price(410)
-        }
-      "apply two bundles in the best way, combine the 4 apple discount bundled with the 2 one" in {
-        val cart   = Cart(
-          Seq(
-            CartItem(appleCatalogItem, Quantity(6))
-          )
-        )
-        val result = bundlePricingCalculator.calculateBestPurchase(cart)
-        result shouldBe Price(410 + 215)
-      }
-      "apply three bundles in the best way, apply promotion 1, 2 and 3" in {
-        val cart   = Cart(
-          Seq(
-            CartItem(breadCatalogItem, Quantity(1)),
-            CartItem(appleCatalogItem, Quantity(6)),
-            CartItem(margarineCatalogItem, Quantity(2)),
-          )
-        )
-        val result = bundlePricingCalculator.calculateBestPurchase(cart)
-        result shouldBe Price(410 + 550 + 215) // 1175
-      }
+    "select the best bundle promotion when multiple apply, choosing the 4-apple discount instead of applying the 2-apple discount twice" in {
+      val cart   = Cart(Seq(CartItem(appleCatalogItem, Quantity(4))))
+      val result = bundlePricingCalculator.calculateBestPurchase(cart)
+      result shouldBe Price(410)
+    }
 
-      "go for the 1 bread + 2 magarines + 2 apples with the 2 apples promotion and charge the other" +
-        " one isolated" in {
-          val cart   = Cart(
-            Seq(
-              CartItem(breadCatalogItem, Quantity(1)),
-              CartItem(appleCatalogItem, Quantity(5)),
-              CartItem(margarineCatalogItem, Quantity(2)),
-            )
-          )
-          val result = bundlePricingCalculator.calculateBestPurchase(cart)
-          result shouldBe Price(550 + 410 + 199) // 1159
-        }
+    "apply multiple promotions optimally, combining the 4-apple discount with the 2-apple discount" in {
+      val cart   = Cart(Seq(CartItem(appleCatalogItem, Quantity(6))))
+      val result = bundlePricingCalculator.calculateBestPurchase(cart)
+      result shouldBe Price(410 + 215)
+    }
 
-      "chose the best deal - promotion 1" in {
-        val promotion1              = // 1 apple 1.99 , 2 apples 2.15
-          BundleTotalPriceDiscount(
-            Seq(CartItem(appleCatalogItem, Quantity(2))),
-            totalPrice = Price(215),
-          )
-        val promotion2              = // 1 apple 1.99 + 1 banana 2.10 , 3.5
-          BundleTotalPriceDiscount(
-            Seq(CartItem(appleCatalogItem, Quantity(1)), CartItem(bananaCatalogItem, Quantity(1))),
-            totalPrice = Price(350),
-          )
-        val cart                    = Cart(
-          Seq(
-            CartItem(appleCatalogItem, Quantity(2)),
-            CartItem(bananaCatalogItem, Quantity(1)),
-          )
+    "apply multiple promotions optimally, combining promotions 1, 2, and 3" in {
+      val cart   = Cart(
+        Seq(
+          CartItem(breadCatalogItem, Quantity(1)),
+          CartItem(appleCatalogItem, Quantity(6)),
+          CartItem(margarineCatalogItem, Quantity(2)),
         )
-        val currentBundles          = Seq(promotion1, promotion2)
-        val bundlePricingCalculator = BundlePricingCalculator(catalogExample, currentBundles)
-        val result                  = bundlePricingCalculator.calculateBestPurchase(cart)
-        result shouldBe Price(215 + 210) // 425
-      }
+      )
+      val result = bundlePricingCalculator.calculateBestPurchase(cart)
+      result shouldBe Price(410 + 550 + 215) // 1175
+    }
 
-      "get the best deal between two bundles of the same product" in {
-        val promotion1              = // 1 apple 1.99 , 2 apples 2.15
-          BundleTotalPriceDiscount(
-            Seq(CartItem(appleCatalogItem, Quantity(2))),
-            totalPrice = Price(215),
-          )
-        val promotion2              = // 1 apple 1.99 , 3 apples 5.00
-          BundleTotalPriceDiscount(
-            Seq(CartItem(appleCatalogItem, Quantity(3))),
-            totalPrice = Price(500),
-          )
-        val cart                    = Cart(
-          Seq(
-            CartItem(appleCatalogItem, Quantity(3))
-          )
+    "apply a complex promotion involving bread, margarine, and apples, charging the remaining items at full price" in {
+      val cart   = Cart(
+        Seq(
+          CartItem(breadCatalogItem, Quantity(1)),
+          CartItem(appleCatalogItem, Quantity(5)),
+          CartItem(margarineCatalogItem, Quantity(2)),
         )
-        val currentBundles          = Seq(promotion1, promotion2)
-        val bundlePricingCalculator = BundlePricingCalculator(catalogExample, currentBundles)
-        val result                  = bundlePricingCalculator.calculateBestPurchase(cart)
-        result shouldBe Price(215 + 199) // 414
-      }
+      )
+      val result = bundlePricingCalculator.calculateBestPurchase(cart)
+      result shouldBe Price(550 + 410 + 199) // 1159
+    }
+
+    "choose the best deal among multiple promotions, applying the 2-apple promotion and charging the banana separately" in {
+      val promotion1              = BundleTotalPriceDiscount(
+        Seq(CartItem(appleCatalogItem, Quantity(2))),
+        totalPrice = Price(215),
+      )
+      val promotion2              = BundleTotalPriceDiscount(
+        Seq(CartItem(appleCatalogItem, Quantity(1)), CartItem(bananaCatalogItem, Quantity(1))),
+        totalPrice = Price(350),
+      )
+      val cart                    = Cart(
+        Seq(
+          CartItem(appleCatalogItem, Quantity(2)),
+          CartItem(bananaCatalogItem, Quantity(1)),
+        )
+      )
+      val currentBundles          = Seq(promotion1, promotion2)
+      val bundlePricingCalculator = BundlePricingCalculator(catalogExample, currentBundles)
+      val result                  = bundlePricingCalculator.calculateBestPurchase(cart)
+      result shouldBe Price(215 + 210) // 425
+    }
+
+    "select the best deal between two promotions for the same product" in {
+      val promotion1              = BundleTotalPriceDiscount(
+        Seq(CartItem(appleCatalogItem, Quantity(2))),
+        totalPrice = Price(215),
+      )
+      val promotion2              = BundleTotalPriceDiscount(
+        Seq(CartItem(appleCatalogItem, Quantity(3))),
+        totalPrice = Price(500),
+      )
+      val cart                    = Cart(Seq(CartItem(appleCatalogItem, Quantity(3))))
+      val currentBundles          = Seq(promotion1, promotion2)
+      val bundlePricingCalculator = BundlePricingCalculator(catalogExample, currentBundles)
+      val result                  = bundlePricingCalculator.calculateBestPurchase(cart)
+      result shouldBe Price(215 + 199) // 414
     }
   }
 
   "meetsBundleCondition" should {
-    "collect promotion if the cart has all necessary products and quantities" in {
-      val cart = Map(
+
+    "return true if the cart contains all necessary products and quantities for a promotion" in {
+      val cart   = Map(
         breadCatalogItem     -> Quantity(1),
         appleCatalogItem     -> Quantity(5),
         margarineCatalogItem -> Quantity(2),
       )
-
       val bundle = BundleDiscountOnItemUnitPrice(
         Seq(
           MaybeDiscountedItem(CartItem(appleCatalogItem, Quantity(2)), optionalUnitPriceOverride = Some(Price(0))),
@@ -163,16 +145,15 @@ class BundlePricingCalculatorSpec extends AnyWordSpec with Matchers {
           MaybeDiscountedItem(CartItem(margarineCatalogItem, Quantity(2)), optionalUnitPriceOverride = None),
         )
       )
-
       val result = bundlePricingCalculator.meetsBundleCondition(cart).isDefinedAt(bundle)
       result shouldBe true
     }
-    "do not collect promotion if the cart hasn't all necessary products" in {
-      val cart = Map(
+
+    "return false if the cart does not contain all necessary products for a promotion" in {
+      val cart   = Map(
         breadCatalogItem -> Quantity(1),
         appleCatalogItem -> Quantity(5),
       )
-
       val bundle = BundleDiscountOnItemUnitPrice(
         Seq(
           MaybeDiscountedItem(CartItem(appleCatalogItem, Quantity(2)), optionalUnitPriceOverride = Some(Price(0))),
@@ -180,17 +161,16 @@ class BundlePricingCalculatorSpec extends AnyWordSpec with Matchers {
           MaybeDiscountedItem(CartItem(margarineCatalogItem, Quantity(3)), optionalUnitPriceOverride = None),
         )
       )
-
       val result = bundlePricingCalculator.meetsBundleCondition(cart).isDefinedAt(bundle)
       result shouldBe false
     }
-    "do not collect promotion if the cart has all the products but not the quantities" in {
-      val cart = Map(
+
+    "return false if the cart contains all necessary products but insufficient quantities for a promotion" in {
+      val cart   = Map(
         breadCatalogItem     -> Quantity(1),
         appleCatalogItem     -> Quantity(5),
         margarineCatalogItem -> Quantity(2),
       )
-
       val bundle = BundleDiscountOnItemUnitPrice(
         Seq(
           MaybeDiscountedItem(CartItem(appleCatalogItem, Quantity(2)), optionalUnitPriceOverride = Some(Price(0))),
@@ -198,7 +178,6 @@ class BundlePricingCalculatorSpec extends AnyWordSpec with Matchers {
           MaybeDiscountedItem(CartItem(margarineCatalogItem, Quantity(3)), optionalUnitPriceOverride = None),
         )
       )
-
       val result = bundlePricingCalculator.meetsBundleCondition(cart).isDefinedAt(bundle)
       result shouldBe false
     }
@@ -206,9 +185,8 @@ class BundlePricingCalculatorSpec extends AnyWordSpec with Matchers {
 
   "promotionsSortedByBestDiscount" should {
 
-    "sort promotions by best price" in {
-      val currentBundles = Seq(promotion1, promotion2, promotion3, promotion4)
-
+    "sort promotions in descending order of their discount percentages" in {
+      val currentBundles          = Seq(promotion1, promotion2, promotion3, promotion4)
       val bundlePricingCalculator = BundlePricingCalculator(catalogExample, currentBundles)
       val result                  = bundlePricingCalculator.promotionsSortedByBestDiscount
       result shouldBe Seq(promotion3, promotion1, promotion4, promotion2) // 48%, 45%, 33%, 31%
@@ -216,7 +194,8 @@ class BundlePricingCalculatorSpec extends AnyWordSpec with Matchers {
   }
 
   "getDiscountPercentage" should {
-    "calculate discount percentage for bundle promotions" in {
+
+    "calculate the correct discount percentage for each bundle promotion" in {
       val bundlePricingCalculator = BundlePricingCalculator(catalogExample, currentBundles)
       bundlePricingCalculator.getDiscountPercentage(promotion1).toInt shouldBe 45
       bundlePricingCalculator.getDiscountPercentage(promotion2).toInt shouldBe 31
@@ -224,4 +203,5 @@ class BundlePricingCalculatorSpec extends AnyWordSpec with Matchers {
       bundlePricingCalculator.getDiscountPercentage(promotion4).toInt shouldBe 33
     }
   }
+
 }
